@@ -61,41 +61,6 @@ vec3 toSRGB(vec3 c) {
     return pow(c, vec3(1.0/2.2));
 }
 
-uniform sampler2D gnormal;       // NMAP
-uniform sampler2D gdepth;       // DMAP
-
-// PBR
-vec3 fresnelSchlick(float cosTheta, vec3 F0) {
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
-}
-
-float DistributionGGX(vec3 N, vec3 H, float roughness) {
-    float a = roughness * roughness;
-    float a2 = a * a;
-    float NdotH = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
-
-    float num = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = 3.14159265 * denom * denom;
-
-    return num / denom;
-}
-
-float GeometrySchlickGGX(float NdotV, float roughness) {
-    float r = (roughness + 1.0);
-    float k = (r * r) / 8.0;
-    return NdotV / (NdotV * (1.0 - k) + k);
-}
-
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx1 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx2 = GeometrySchlickGGX(NdotL, roughness);
-    return ggx1 * ggx2;
-}
-
 //////////////////////////////VOID MAIN//////////////////////////////
 //////////////////////////////VOID MAIN//////////////////////////////
 //////////////////////////////VOID MAIN//////////////////////////////
@@ -147,37 +112,10 @@ void main() {
     // Fix Enchantment Light: Adjust alpha only within a certain range to avoid breaking the enchantment mark
     if (albedo.a > 0.98999 && albedo.a < 0.99991)
         albedo.a = 0.99992;
-	vec3 N = normalize(texture2D(gnormal, texcoord).xyz * 2.0 - 1.0);
-
-	vec3 V = normalize(-N);
-    vec3 L = normalize(vec3(0.5, 1.0, 0.5));
-    vec3 H = normalize(V + L);
-	float depth = texture2D(gdepth, texcoord).r;
-    float roughness = smoothstep(0.0, 1.0, depth);
-    float metallic = step(0.5, roughness);
-
-	vec3 F0 = mix(vec3(0.04), albedo.rgb, metallic);
-    float NDF = DistributionGGX(N, H, roughness);
-    float G = GeometrySmith(N, V, L, roughness);
-    vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-    vec3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-    vec3 specular = numerator / max(denominator, 0.001);
-
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - metallic;
-
-    float NdotL = max(dot(N, L), 0.0);
-    vec3 diffuse = kD * albedo.rgb / 3.14159265;
-
-    vec3 Lo = (diffuse + specular) * NdotL;
-    vec3 ambient = vec3(0.03) * albedo.rgb;
-    vec3 finalColor = ambient + Lo;
 
 
 /* DRAWBUFFERS:01 */
 	albedo.a = (albedo.a > 0.98999 && albedo.a < 0.99991)? 0.99992 : albedo.a;
-	gl_FragData[0] = vec4(finalColor, albedo.a);
-	gl_FragData[1] = vec4(N * 0.5 + 0.5, 1.0);
+	gl_FragData[0] = vec4(fColor,albedo.a);
+	gl_FragData[1] = vec4(pow(ambientNdotL.rgb+handLight*vec3(1.0,0.45,0.09)*0.5,vec3(1.0/2.2))*albedo.rgb,albedo.a);
 }
