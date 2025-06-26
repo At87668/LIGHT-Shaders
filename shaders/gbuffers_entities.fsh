@@ -102,12 +102,6 @@ void main() {
 	
 	vec3 fColor = pow(sunlight + ambientNdotL.rgb+handLight*vec3(1.0,0.45,0.09)*0.5,vec3(1./2.2))*albedo.rgb;
 
-    // Fix Enchantment Light
-    if (albedo.a > 0.98999 && albedo.a < 0.99991)
-        albedo.a = 0.99992;
-
-    vec3 ambientNdotL = vec3(0.6, 0.6, 0.6);
-
 /* DRAWBUFFERS:01 */
 	albedo.a = (albedo.a > 0.98999 && albedo.a < 0.99991)? 0.99992 : albedo.a;
 	gl_FragData[0] = vec4(fColor,albedo.a);
