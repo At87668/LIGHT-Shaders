@@ -6,6 +6,12 @@ Make you have both high FPS and good image quality.
 
 ---
 
+### Gallery
+
+![gallery](https://cdn.modrinth.com/data/UuwCHIS3/images/00b5c65dd6fc249bd5a505a704a12016d0903857.png)
+
+---
+
 ### Features
 
 #### FPS in your hands.
