@@ -1,6 +1,6 @@
 ## LIGHT Shaders
 
-Light like light,
+As light as light,
 
 Make you have both high FPS and good image quality.
 
