@@ -28,11 +28,30 @@ Let you have an excellent FPS.
 
 Removed some features of Chocapic13's Shaders,
 
-But retaining the excellent picture manifestation.
+But it's not one-size-fits-all like some shaders,
+
+Instead, it retains excellent picture manifestation:
+- Water reflections
+- Water surface ripples
+- Good shadows
+- Outstanding performance in different weather
+- Clouds that move with the wind
+- and more...
+
+And added a few features of it own.
+
+#### Exclusive Atmosphere.
+
+Gives you a unique atmosphere.
+
+#### Excellent field of view brightness.
+
+Doesn't make you feel so dark in the Nether instead of you can't see anything like the usual shaders.
 
 ---
 
 ### Requirements
+
 - Iris Shaders, Oculus Shaders or OptiFine.
 - OpenGL 1.2 support.
-
+- An ordinary GPU. (even extremely below average)
