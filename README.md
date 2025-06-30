@@ -1,6 +1,6 @@
 ## LIGHT Shaders
 
-As light as light,
+As light as light, as beautiful as painting.
 
 Make you have both high FPS and good image quality.
 

@@ -9,7 +9,7 @@
 
 !! DO NOT REMOVE !! !! DO NOT REMOVE !!
 
-This code is from Chocapic13' shaders
+Original code is from Chocapic13' shaders and this code is modified by LIGHT Shaders
 Read the terms of modification and sharing before changing something below please !
 !! DO NOT REMOVE !! !! DO NOT REMOVE !!
 
@@ -241,7 +241,6 @@ fragpos = fragpos + vector;
     return color;
 }
 
-
 vec3 Uncharted2Tonemap(vec3 x) {
 //tonemapping constants			
 float A = 1.3;		
@@ -283,10 +282,6 @@ float subSurfaceScattering2(vec3 vec,vec3 pos, float N) {
 
 return pow(max(dot(vec,normalize(pos))*0.5+0.5,0.0),N)*(N+1)/6.28;
 
-}
-
-vec3 drawCloud(vec3 fposition,vec3 color,vec3 vH) {
-return vec3(0.0);
 }
 //((48*(0.5*48+0.25*0.1)+0.006)/(48*(0.5*48+0.25)+0.3*0.3))-0.02/0.3
 //////////////////////////////VOID MAIN//////////////////////////////
@@ -365,7 +360,6 @@ bool transparency = length(normal) > 0.01;
 
 if (!particle && !land) {
 	color = fogColor+color*skyBoxFactor;
-	if (cosT > 0.0) color.rgb = drawCloud(fragpos.xyz,color.rgb,cameraPosition);
 }
 
 	if (transparency) {
@@ -425,7 +419,6 @@ if (!particle && !land) {
 		else color = pow(texture2D(gcolor,newtc).xyz,vec3(2.2))*0.8;
 		
 		color = land2? calcFog(uPos.xyz,color,fogColor,uPosY.y+cameraPosition.y,length(fragpos-uPos)) : fogColor+color*skyBoxFactor;
-		if (!land2 && cosT > 0.0) color.rgb = drawCloud(fragpos.xyz,color.rgb,cameraPosition);
 
 		
 		vec4 rawAlbedo = pow(texture2D(gaux2,texcoord.xy),vec4(2.2,2.2,2.2,1.0));
@@ -438,14 +431,8 @@ if (!particle && !land) {
 		float fresnel = pow(1.00 + normalDotEye, 5.0)+0.02;		
 		
 		vec3 reflectedVector = reflect(normalize(fragpos.xyz), normal);
-		vec3 sky_c = drawCloud(normalize(reflectedVector),getSkyColor(reflectedVector),cameraPosition);
-		
-
-		vec4 reflection = raytrace(fragpos.xyz, normal,sky_c,reflectedVector);
-		reflection.rgb = mix(sky_c*(1.0-isEyeInWater), reflection.rgb, reflection.a);		
 		
 		fresnel *= (iswater || isice)? 1.0 : 0.5;
-		color = mix(color,reflection.rgb,fresnel/1.1);
 
 	}
 
