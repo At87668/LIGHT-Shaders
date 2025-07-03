@@ -58,6 +58,13 @@ Not respecting these rules can and will result in a request of thread/download s
 
 
 */
+#define SHARPENING
+#ifdef SHARPENING
+	#define SHARPENING_ON
+#else
+	#define SHARPENING_OFF
+#endif
+
 #define VIGNETTE
 #define VIGNETTE_STRENGTH 1. 
 #define VIGNETTE_START 0.35	//distance from the center of the screen where the vignette effect start (0-1)
@@ -110,6 +117,7 @@ varying float moonVisibility;
 
 uniform sampler2D gcolor;
 uniform sampler2D gaux1;
+uniform sampler2D colortex1;
 
 varying vec2 rainPos1;
 varying vec2 rainPos2;
@@ -191,6 +199,52 @@ float gen_circular_lens(vec2 center, float size) {
 float smStep (float edge0,float edge1,float x) {
 float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
 return t * t * (3.0 - 2.0 * t); }
+
+in vec2 coord0;
+#ifdef SHARPENING
+void TAA(inout vec3 color, vec2 textureCoord) {
+	// 3x3 Neighborhood sampling using texture2D and manual offsets
+	vec2 texel = vec2(1.0/viewWidth, 1.0/viewHeight);
+	vec3 a = texture2D(colortex1, textureCoord + texel * vec2(-1.0, -1.0)).rgb;
+	vec3 b = texture2D(colortex1, textureCoord + texel * vec2( 0.0, -1.0)).rgb;
+	vec3 cTAA = texture2D(colortex1, textureCoord + texel * vec2( 1.0, -1.0)).rgb;
+	vec3 d = texture2D(colortex1, textureCoord + texel * vec2(-1.0,  0.0)).rgb;
+	vec3 e = color;
+	vec3 f = texture2D(colortex1, textureCoord + texel * vec2( 1.0,  0.0)).rgb;
+	vec3 g = texture2D(colortex1, textureCoord + texel * vec2(-1.0,  1.0)).rgb;
+	vec3 h = texture2D(colortex1, textureCoord + texel * vec2( 0.0,  1.0)).rgb;
+	vec3 i = texture2D(colortex1, textureCoord + texel * vec2( 1.0,  1.0)).rgb;
+
+	// Soft min/max
+	vec3 mnRGB  = min(min(min(d,e),min(f,b)),h);
+	vec3 mnRGB2 = min(min(min(mnRGB,a),min(g,cTAA)),i);
+	mnRGB += mnRGB2;
+
+	vec3 mxRGB  = max(max(max(d,e),max(f,b)),h);
+	vec3 mxRGB2 = max(max(max(mxRGB,a),max(g,cTAA)),i);
+	mxRGB += mxRGB2;
+
+	vec3 rcpMxRGB = vec3(1.0)/mxRGB;
+	vec3 ampRGB = clamp((min(mnRGB,2.0-mxRGB) * rcpMxRGB),0.0,1.0);
+
+	ampRGB = inversesqrt(ampRGB);
+	float peak = 8.0;
+	vec3 wRGB = -vec3(1.0)/(ampRGB * peak);
+	vec3 rcpWeightRGB = vec3(1.0)/(1.0 + 4.0 * wRGB);
+
+	vec3 window = (b + d) + (f + h);
+	vec3 outColor = clamp((window * wRGB + e) * rcpWeightRGB,0.0,1.0);
+
+	float brightness = max(max(e.r, e.g), e.b);
+    float blend = mix(0.3, 0.7, clamp(1.0 - brightness * 2.0, 0.0, 1.0)); // The higher the brightness, the smaller the blend
+    outColor = min(outColor, vec3(1.0)); // light limit
+    color = mix(e, outColor, blend);
+}
+#else
+// Off
+void TAA(inout vec3 color, vec2 coord) {}
+#endif
+
 //////////////////////////////VOID MAIN//////////////////////////////
 //////////////////////////////VOID MAIN//////////////////////////////
 //////////////////////////////VOID MAIN//////////////////////////////
@@ -279,7 +333,7 @@ if (fading > 0.01) {
 
 
 		
-
+    TAA(c, coord0);
 
 	#ifdef VIGNETTE
 	float len = length(newTC.xy-vec2(.5));
