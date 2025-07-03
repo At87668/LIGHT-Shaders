@@ -36,7 +36,7 @@ Instead, it retains excellent picture manifestation:
 - Good shadows
 - Outstanding performance in different weather
 - Clouds that move with the wind
-- TAA anti-aliasing
+- TAA anti-aliasing (optional)
 - and more...
 
 And added a few features of it own.
