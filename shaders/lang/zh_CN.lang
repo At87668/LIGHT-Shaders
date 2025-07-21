@@ -1,0 +1,7 @@
+option.SHARPENING=抗锯齿
+option.SHARPENING.comment=启用时间性抗锯齿。
+option.VIGNETTE=晕影
+option.VIGNETTE.comment=使屏幕边缘发黑。
+
+screen.AA_SCREEN=后处理
+screen.EFFECTS_SCREEN=效果

@@ -1,0 +1,7 @@
+option.SHARPENING=Sharpness
+option.SHARPENING.comment=Enable Temporal Anti-Aliasing.
+option.VIGNETTE=Vignette
+option.VIGNETTE.comment=Blackens the edges of the screen.
+
+screen.AA_SCREEN=Postprocessing
+screen.EFFECTS_SCREEN=Effects
