@@ -56,3 +56,7 @@ Doesn't make you feel so dark in the Nether instead of you can't see anything li
 - Iris Shaders, Oculus Shaders or OptiFine.
 - OpenGL 1.2 support.
 - An ordinary GPU. (even extremely below average)
+
+---
+
+### *If you want to support my work, you can subscribe my [Patreon](https://www.patreon.com/Author87668) membership.*
