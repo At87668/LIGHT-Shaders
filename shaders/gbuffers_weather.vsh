@@ -14,13 +14,8 @@ varying vec3 moonVec;
 varying vec3 upVec;
 
 attribute vec4 mc_midTexCoord;
-// OptiFine / Iris compatibility: define `IS_IRIS` to use Iris' generic attribute
-#ifdef IS_IRIS
-attribute vec4 iris_Position;
-#define ATTR_POSITION iris_Position
-#else
+
 #define ATTR_POSITION gl_Vertex
-#endif
 
 varying vec3 sky1;
 varying vec3 sky2;
