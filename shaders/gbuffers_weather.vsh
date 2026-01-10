@@ -14,6 +14,13 @@ varying vec3 moonVec;
 varying vec3 upVec;
 
 attribute vec4 mc_midTexCoord;
+// OptiFine / Iris compatibility: define `IS_IRIS` to use Iris' generic attribute
+#ifdef IS_IRIS
+attribute vec4 iris_Position;
+#define ATTR_POSITION iris_Position
+#else
+#define ATTR_POSITION gl_Vertex
+#endif
 
 varying vec3 sky1;
 varying vec3 sky2;
@@ -135,7 +142,7 @@ float mcosS = max(cosS*0.7+0.3,0.0);
 	sky2 = mix(sky_color,mix(nsunlight,sky_color,rainStrength*0.7),1.0-mcosS);
 	skyMult = max(SdotU*0.1+0.1,0.0)/0.2*(1.0-rainStrength*0.6);
 
-	vec4 position = gbufferModelViewInverse * gl_ModelViewMatrix * gl_Vertex;
+	vec4 position = gbufferModelViewInverse * gl_ModelViewMatrix * ATTR_POSITION;
 		vec3 worldpos = position.xyz + cameraPosition;
 		bool istopv = worldpos.y > cameraPosition.y+5.0;
 	if (!istopv) position.xz += vec2(3.0,1.0)+sin(frameTimeCounter)*sin(frameTimeCounter)*sin(frameTimeCounter)*vec2(2.1,0.6);

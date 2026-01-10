@@ -37,6 +37,13 @@ attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
 
 attribute vec4 at_tangent;
+// OptiFine / Iris compatibility: define `IS_IRIS` to use Iris' generic attribute
+#ifdef IS_IRIS
+attribute vec4 iris_Position;
+#define ATTR_POSITION iris_Position
+#else
+#define ATTR_POSITION gl_Vertex
+#endif
 
 varying vec3 normal;
 varying vec3 tangent;
@@ -90,7 +97,7 @@ void main() {
 
 
 	
-	vec4 position = gl_ModelViewMatrix * gl_Vertex;
+	vec4 position = gl_ModelViewMatrix * ATTR_POSITION;
 	position = gbufferModelViewInverse * position;
 	vec3 worldpos = position.xyz + cameraPosition;
 	bool istopv = gl_MultiTexCoord0.t < mc_midTexCoord.t;
@@ -213,5 +220,5 @@ void main() {
     tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
     binormal = normalize(gl_NormalMatrix * cross(gl_Normal, at_tangent.xyz)) * at_tangent.w;
 
-    gl_Position = ftransform();
+    
 }

@@ -30,6 +30,13 @@ varying float iswater;
 
 attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
+// OptiFine / Iris compatibility: define `IS_IRIS` to use Iris' generic attribute
+#ifdef IS_IRIS
+attribute vec4 iris_Position;
+#define ATTR_POSITION iris_Position
+#else
+#define ATTR_POSITION gl_Vertex
+#endif
 
 uniform vec3 cameraPosition;
 uniform vec3 sunPosition;
@@ -86,7 +93,7 @@ void main() {
 	lmtexcoord.zw = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
 	
-	vec4 position = gl_ModelViewMatrix * gl_Vertex;
+	vec4 position = gl_ModelViewMatrix * ATTR_POSITION;
 	iswater = 0.0f;
 	float displacement = 0.0;
 	

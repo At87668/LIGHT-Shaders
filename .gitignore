@@ -2,3 +2,4 @@ ToZip.bat
 integrater.py
 *.zip
 txt-out
+*.png
