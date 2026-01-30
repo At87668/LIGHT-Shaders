@@ -215,5 +215,5 @@ void main() {
     tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
     binormal = normalize(gl_NormalMatrix * cross(gl_Normal, at_tangent.xyz)) * at_tangent.w;
 
-    
+    gl_Position = ftransform();
 }
