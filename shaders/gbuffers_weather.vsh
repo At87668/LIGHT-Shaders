@@ -148,7 +148,7 @@ float mcosS = max(cosS*0.7+0.3,0.0);
 	color = gl_Color;
 
 	
-	//gl_Position = ftransform();
+	gl_Position = ftransform();
 	
 	texcoord = gl_TextureMatrix[0] * gl_MultiTexCoord0;
 	
