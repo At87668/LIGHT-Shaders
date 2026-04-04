@@ -89,42 +89,37 @@ const vec3 ToD[7] = vec3[7](  vec3(0.58597,0.16,0.025),
 
 void main() {
 
-
-
-	
 	vec4 position = gl_ModelViewMatrix * ATTR_POSITION;
 	position = gbufferModelViewInverse * position;
 	vec3 worldpos = position.xyz + cameraPosition;
 	bool istopv = gl_MultiTexCoord0.t < mc_midTexCoord.t;
-	
-	
-	//optimisation to get only one comparison to do per waving move
+
+	// compute lightmap-based torch value early so we can fallback to it for emissive detection
+	vec2 lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+	float modlmap = 16.0 - lmcoord.s * 15.7;
+	float torch_lightmap = max(0.75/(modlmap*modlmap)-0.00315,0.0);
 	vec4 idtest = vec4(ENTITY_TALLGRASS,ENTITY_DANDELION,ENTITY_ROSE,ENTITY_WHEAT)-mc_Entity.x;
 	bool wavy1 = idtest.x*idtest.y*idtest.z*idtest.w == 0.0;
-	
+
 	vec2 id2 = vec2(161.0,ENTITY_LEAVES)-mc_Entity.x;
 	bool wavy2 = id2.x*id2.y == 0.0;
-	
-	
+
 	idtest = vec4(50.0,62.0,76.0,89.0)-mc_Entity.x;
-	bool emissive = idtest.x*idtest.y*idtest.z*idtest.w == 0.0;
-	
+	// keep original ID-based detection, but also treat any sufficiently strong lightmap as emissive
+	bool emissive = (idtest.x*idtest.y*idtest.z*idtest.w == 0.0) || (torch_lightmap > 0.02);
+
 	idtest = vec4(141.0,142.0,175.0,106.0)-mc_Entity.x;
-	
 	bool mat = idtest.x*idtest.y*idtest.z*idtest.w == 0.0;
 	color = (emissive? vec4(1.0) : gl_Color);
-	
-
 
 	if ((istopv && wavy1)|| wavy2) position.xyz += calcMove(worldpos.xyz, 0.0040, 0.0064, 0.0043, 0.0035, 0.0037, 0.0041, vec3(1.0,0.2,1.0), vec3(0.5,0.1,0.5));
 
 	if (wavy1 || wavy2) {
 			mat = true;
-
-			color *= vec4(1.1,1.1,1.1,1.0);	
+			color *= vec4(1.1,1.1,1.1,1.0);
 		}
-		
-	position = gbufferModelView * position;	
+
+	position = gbufferModelView * position;
 	gl_Position = gl_ProjectionMatrix * position;
 
 	/*--------------------------------*/
@@ -144,16 +139,10 @@ void main() {
 	
 	texcoord = (gl_MultiTexCoord0).xy;
 
-	vec2 lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 	vec3 normal = normalize(gl_NormalMatrix * gl_Normal);
 	
 
-	
-
 	float skyL = max(lmcoord.t-2./16.0,0.0)*1.14285714286;
-
-	float modlmap = 16.0-lmcoord.s*15.7; 
-	float torch_lightmap = max(0.75/(modlmap*modlmap)-0.00315,0.0);
 
 
 	const vec3 moonlight = vec3(0.4, 0.72, 1.5) * 0.004;

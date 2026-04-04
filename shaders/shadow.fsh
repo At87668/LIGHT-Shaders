@@ -18,6 +18,11 @@ uniform sampler2D tex;
 //////////////////////////////VOID MAIN//////////////////////////////
 
 void main() {
+	vec4 col = texture2D(tex, texcoord.xy);
+
+	if (col.a < 0.001) discard;
+	
+	gl_FragColor = col;
 
 	gl_FragData[0] = texture2D(tex,texcoord.xy);
 }

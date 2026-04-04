@@ -271,7 +271,7 @@ void main() {
 	avgAmbient /= sqrt(3.0);
 	/*--------------------------------*/
 
-	handItemLight = 0.0;
+	handItemLight = heldBlockLightValue / 48.0;
 	if (heldItemId == 50) {
 		// torch
 		handItemLight = 0.5;
