@@ -40,8 +40,6 @@ uniform float rainStrength;
 
 uniform int heldBlockLightValue;
 
-uniform float frameTimeCounter;  // For enchantment glint animation
-
 vec3 sunlight = sunlightMat.rgb;
 float diffuse = ambientNdotL.a;
 //////////////////////////////VOID MAIN//////////////////////////////
@@ -74,18 +72,7 @@ void main() {
 
 		
 		if (max(abs(worldposition.x),abs(worldposition.y)) < 0.99) {
-			// Improved shadow offset calculation - based on Complementary Shaders approach
-			float NdotLm = clamp(diffuse * 1.01 - 0.01, 0.0, 1.0) * 0.99 + 0.01;
-			float biasFactor = sqrt(1.0 - NdotLm * NdotLm) / NdotLm;
-			float distortBias = distortFactor * 120.0 / 256.0;  // shadowDistance = 120.0
-			distortBias *= 8.0 * distortBias;
-			float diffthresh = (distortBias * biasFactor + 0.05) / shadowMapResolution;
-			
-			// Cave leak fix - detects very low sky-light environments
-			if (ambientNdotL.a < 0.01) {
-				diffuse = 0.0;
-			}
-			
+			float diffthresh = sunlightMat.a > 0.9? 0.0015 : distortFactor*distortFactor*(0.006*tan(acos(diffuse)) + 0.0006);
 			const float halfres = (0.25/shadowMapResolution);
 			float offset = (rainStrength*2.0*halfres+halfres);
 			
@@ -97,23 +84,9 @@ void main() {
 	}
 
 
-	vec3 sunlight = vec3(0.03);
-	
-	// Enchantment glint animation - make it flow
-	float enchantGlint = 0.0;
-	if (albedo.a > 0.98999 && albedo.a < 0.99991) {
-		// Animated texture coordinates for enchantment glint
-		vec2 glintCoord = texcoord.xy * 4.0;
-		glintCoord.x += frameTimeCounter * 0.5;
-		glintCoord.y += frameTimeCounter * 0.3;
-		enchantGlint = sin(glintCoord.x * 10.0) * cos(glintCoord.y * 10.0) * 0.5 + 0.5;
-		enchantGlint = pow(enchantGlint, 3.0) * 0.3;
-	}
+	vec3 sunlight = sunlight*diffuse;
 	
 	vec3 fColor = pow(sunlight + ambientNdotL.rgb+handLight*vec3(1.0,0.45,0.09)*0.5,vec3(1./2.2))*albedo.rgb;
-	
-	// Add enchantment glint to final color
-	fColor += enchantGlint * vec3(0.5, 0.3, 1.0);
 
 
 /* DRAWBUFFERS:01 */
