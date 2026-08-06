@@ -82,7 +82,18 @@ void main() {
 
 		
 		if (max(abs(worldposition.x),abs(worldposition.y)) < 0.99) {
-			float diffthresh = sunlightMat.a > 0.9? 0.0015 : distortFactor*distortFactor*(0.006*tan(acos(diffuse)) + 0.0006);
+			// Improved shadow offset calculation - based on Complementary Shaders approach
+			float NdotLm = clamp(diffuse * 1.01 - 0.01, 0.0, 1.0) * 0.99 + 0.01;
+			float biasFactor = sqrt(1.0 - NdotLm * NdotLm) / NdotLm;
+			float distortBias = distortFactor * 120.0 / 256.0;  // shadowDistance = 120.0
+			distortBias *= 8.0 * distortBias;
+			float diffthresh = (distortBias * biasFactor + 0.05) / shadowMapResolution;
+			
+			// Cave leak fix - detects very low sky-light environments
+			if (ambientNdotL.a < 0.01) {
+				diffuse = 0.0;
+			}
+			
 			const float halfres = (0.25/shadowMapResolution);
 			float offset = (rainStrength*2.0*halfres+halfres);
 			

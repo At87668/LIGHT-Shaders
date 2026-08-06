@@ -25,6 +25,7 @@ void main() {
 	float distortFactor = (1.0f - SHADOW_MAP_BIAS) + dist * SHADOW_MAP_BIAS;
 	
 	gl_Position.xy *= 1.0f / distortFactor;
+	gl_Position.z = gl_Position.z * 0.2;  // Compress depth range for better near precision, preventing sunlight leaks
 	
 	texcoord = gl_MultiTexCoord0;
 
