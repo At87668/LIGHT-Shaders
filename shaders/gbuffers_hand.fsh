@@ -40,6 +40,8 @@ uniform float rainStrength;
 
 uniform int heldBlockLightValue;
 
+uniform float frameTimeCounter;  // For enchantment glint animation
+
 vec3 sunlight = sunlightMat.rgb;
 float diffuse = ambientNdotL.a;
 //////////////////////////////VOID MAIN//////////////////////////////
@@ -97,10 +99,21 @@ void main() {
 
 	vec3 sunlight = sunlight*diffuse;
 	
-	
-	
+	// Enchantment glint animation - make it flow
+	float enchantGlint = 0.0;
+	if (albedo.a > 0.98999 && albedo.a < 0.99991) {
+		// Animated texture coordinates for enchantment glint
+		vec2 glintCoord = texcoord.xy * 4.0;
+		glintCoord.x += frameTimeCounter * 0.5;
+		glintCoord.y += frameTimeCounter * 0.3;
+		enchantGlint = sin(glintCoord.x * 10.0) * cos(glintCoord.y * 10.0) * 0.5 + 0.5;
+		enchantGlint = pow(enchantGlint, 3.0) * 0.3;
+	}
 	
 	vec3 fColor = pow(sunlight + ambientNdotL.rgb+handLight*vec3(1.0,0.45,0.09)*0.5,vec3(1./2.2))*albedo.rgb;
+	
+	// Add enchantment glint to final color
+	fColor += enchantGlint * vec3(0.5, 0.3, 1.0);
 
 
 /* DRAWBUFFERS:01 */

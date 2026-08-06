@@ -45,6 +45,7 @@ varying vec3 binormal;
 uniform vec3 cameraPosition;
 uniform vec3 sunPosition;
 uniform vec3 upPosition;
+uniform vec4 entityColor;  // Entity hurt color (red flash on damage)
 
 uniform mat4 gbufferModelView;
 uniform mat4 gbufferModelViewInverse;
@@ -168,6 +169,11 @@ void main() {
 
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
     color = gl_Color;
+    
+    // Apply entity hurt color (red flash when damaged)
+    if (entityColor.a > 0.001) {
+        color.rgb = mix(color.rgb, entityColor.rgb, entityColor.a);
+    }
 
     normal = normalize(gl_NormalMatrix * gl_Normal);
     tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
