@@ -69,18 +69,7 @@ void main() {
 	worldposition.xy /= distortFactor; 
 
 	
-	// Improved shadow offset calculation - based on Complementary Shaders approach
-	float NdotLm = clamp(diffuse * 1.01 - 0.01, 0.0, 1.0) * 0.99 + 0.01;
-	float biasFactor = sqrt(1.0 - NdotLm * NdotLm) / NdotLm;
-	float distortBias = distortFactor * 120.0 / 256.0;  // shadowDistance = 120.0
-	distortBias *= 8.0 * distortBias;
-	float diffthresh = (distortBias * biasFactor + 0.05) / shadowMapResolution;
-	
-	// Cave leak fix - detects very low sky-light environments
-	if (ambientNdotL.a < 0.01) {
-		diffuse = 0.0;
-	}
-	
+	float diffthresh = 0.0005*distortFactor*distortFactor;
 	const float halfres = (0.5/shadowMapResolution);
 	float offset = (rainStrength*2.0)*halfres+halfres;
 	

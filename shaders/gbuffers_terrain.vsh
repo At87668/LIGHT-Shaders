@@ -183,6 +183,8 @@ void main() {
 	ambientNdotL.rgb = (sun_ambient*visibility.x + moon_ambient*visibility.y)*SkyL2*(0.03+tr*0.17)*0.8 + vec3(1.0,0.45,0.09)*torch_lightmap*0.75 + vec3(0.0012,0.0012,0.0012)*min(skyL+6/16.,9/16.);
 
 	sunlight = mix(sunlight,moonlight*(1.0-rainStrength*0.9),visibility.y)*tr;
+	// Cave leak fix: no direct sunlight without sky light (uses real skyL, not NdotL)
+	sunlight *= smoothstep(0.0, 0.08, skyL);
 	
 	sunlightMat = vec4(sunlight*0.9,0.0);
 
