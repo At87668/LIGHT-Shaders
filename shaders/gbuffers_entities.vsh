@@ -109,7 +109,8 @@ void main() {
 	const vec3 rainC = vec3(0.005,0.007,0.009);
 	sunlight = mix(sunlight,rainC*sunlight,rainStrength);
 	
-	texcoord = (gl_MultiTexCoord0).xy;
+	// Fix: Apply texture matrix for enchantment glint animation
+	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 	vec2 lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 	vec3 normal = normalize(gl_NormalMatrix * gl_Normal);
 	
