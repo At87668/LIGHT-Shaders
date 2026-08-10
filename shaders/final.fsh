@@ -70,10 +70,14 @@ Not respecting these rules can and will result in a request of thread/download s
 #define VIGNETTE_START 0.35	//distance from the center of the screen where the vignette effect start (0-1)
 #define VIGNETTE_END 0.75		//distance from the center of the screen where the vignette effect end (0-1), bigger than VIGNETTE_START
 
-	//#define GODRAYS			//in this step previous godrays result is blurred
 		const float exposure = 2.2;			//godrays intensity
 		const float density = 1.0;			
 		const float grnoise = 0.0;		//amount of noise 
+
+#define LENS_EFFECTS
+#ifdef LENS_EFFECTS
+	//#define GODRAYS			//in this step previous godrays result is blurred
+#endif 
 
 
 //////////////////////////////END OF ADJUSTABLE VARIABLES
@@ -317,7 +321,8 @@ c = ((1.0-(1.0-c)*(1.0-rainlens*avgAmbient*0.17)));
 	
 	
 
-if (fading > 0.01) {
+#ifdef LENS_EFFECTS
+	if (fading > 0.01) {
     float sunvisibility = texture2D(gaux1,vec2(0.0015)).a * fading;
 	
 	const float lensBrightness = 5.0;
@@ -385,6 +390,7 @@ if (fading > 0.01) {
 	
 	
 }
+#endif
 	
 	
 	
