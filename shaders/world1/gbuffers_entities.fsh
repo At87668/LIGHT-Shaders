@@ -7,7 +7,16 @@ Read the terms of modification and sharing before changing something below pleas
 !! DO NOT REMOVE !!
 */
 
-	const int shadowMapResolution = 1024;		//shadowmap resolution
+#define SHADOW_QUALITY 1 //[0 1 2 3]
+#if SHADOW_QUALITY == 0
+	const int shadowMapResolution = 512;
+#elif SHADOW_QUALITY == 1
+	const int shadowMapResolution = 1024;
+#elif SHADOW_QUALITY == 2
+	const int shadowMapResolution = 2048;
+#elif SHADOW_QUALITY == 3
+	const int shadowMapResolution = 4096;
+#endif
 
 #define SHADOW_MAP_BIAS 0.825
 varying vec4 color;

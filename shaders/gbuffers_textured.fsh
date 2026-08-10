@@ -6,7 +6,16 @@ Original code is from Chocapic13' shaders and this code is modified by LIGHT Sha
 Read the terms of modification and sharing before changing something below please !
 !! DO NOT REMOVE !!
 */
-	const float shadowMapResolution = 1024.0;		//shadowmap resolution
+#define SHADOW_QUALITY 1 //[0 1 2 3]
+#if SHADOW_QUALITY == 0
+	const int shadowMapResolution = 512;
+#elif SHADOW_QUALITY == 1
+	const int shadowMapResolution = 1024;
+#elif SHADOW_QUALITY == 2
+	const int shadowMapResolution = 2048;
+#elif SHADOW_QUALITY == 3
+	const int shadowMapResolution = 4096;
+#endif
 
 
 varying vec4 color;
