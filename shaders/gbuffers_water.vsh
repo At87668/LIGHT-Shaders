@@ -20,6 +20,8 @@ Read the terms of modification and sharing before changing something below pleas
 #define ENTITY_LAVAFLOWING   10.0
 #define ENTITY_LAVASTILL     11.0
 
+#define WATER_WAVES
+
 varying vec4 color;
 varying vec4 lmtexcoord;
 varying vec3 sunlight;
@@ -104,11 +106,14 @@ void main() {
 		iswater = 1.0;
 		float fy = fract(worldpos.y + 0.001);
 		
-
+#ifdef WATER_WAVES
 		float wave = 0.05 * sin(2 * PI * (frameTimeCounter*0.75 + worldpos.x /  7.0 + worldpos.z / 13.0))
 				   + 0.05 * sin(2 * PI * (frameTimeCounter*0.6 + worldpos.x / 11.0 + worldpos.z /  5.0));
 		displacement = clamp(wave, -fy, 1.0-fy);
 		viewpos.y += displacement*0.6-0.01;
+#else
+		viewpos.y -= 0.01;
+#endif
 	}
 	if(mc_Entity.x == 79.0) iswater = 0.5;
 	/* re-rotate */

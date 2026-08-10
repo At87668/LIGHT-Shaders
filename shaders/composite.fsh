@@ -64,8 +64,20 @@ Not respecting these rules can and will result in a request of thread/download s
 #define VIGNETTE_END 0.95		//distance from the center of the screen where the vignette effect end (0-1), bigger than VIGNETTE_START
 
 #define GODRAYS
+#ifdef GODRAYS
 		const float density = 0.1;			
 		const float grnoise = 0.9;			//amount of noise
+#endif
+
+#define BLOOM
+#ifdef BLOOM
+		const float bloomIntensity = 1.0;
+		const float bloomThreshold = 0.8;
+#endif
+
+#define WATER_WAVES
+#define WATER_CAUSTICS
+#define WATER_REFLECTIONS
 
 //////////////////////////////END OF ADJUSTABLE VARIABLES
 //////////////////////////////END OF ADJUSTABLE VARIABLES
@@ -377,6 +389,7 @@ void main() {
 
 
 
+#ifdef GODRAYS
 		vec2 deltatexcoord = vec2(lightPos - texcoord);
 		deltatexcoord *= density;
 		vec2 noisetc = texcoord + deltatexcoord*getnoise(texcoord)*grnoise;
@@ -420,6 +433,9 @@ gr = 0.0;
 	gr /= 144.0;
 
 }
+#else
+float gr = 0.0;
+#endif
 
 
 
@@ -461,6 +477,7 @@ if (!particle && !land) {
 			vec3 posxz = wpos+cameraPosition;
 			float ft = iswater? frameTimeCounter*4.0:0.0;
 			
+#ifdef WATER_WAVES
 			posxz.x += sin(posxz.z+ft)*0.25;
 			posxz.z += cos(posxz.x+ft*0.5)*0.25;
 			posxz.xz += sin(posxz.y);
@@ -473,9 +490,10 @@ if (!particle && !land) {
 			float dX = ((h0-h1))/deltaPos;
 			float dY = ((h0-h2))/deltaPos;
 
-			
-			
 			vec3 refract = normalize(vec3(dX,dY,1.0));
+#else
+			vec3 refract = vec3(0.0,0.0,1.0);
+#endif
 			float refMult = sqrt(1.0-dot(normal,normalize(fragpos).xyz)*dot(normal,normalize(fragpos).xyz))*0.005;
 			
 			newtc = texcoord.xy + refract.xy*refMult;
@@ -496,7 +514,11 @@ if (!particle && !land) {
 		
 		vec3 pos2 = uPosY.xyz+vec3(sin(uPosY.z+cameraPosition.z+frameTimeCounter)*0.25,0.0,cos(uPosY.x+cameraPosition.x+frameTimeCounter*0.5)*0.25)+cameraPosition+sin(uPosY.y+cameraPosition.y);
 		
+#ifdef WATER_CAUSTICS
 		float caustics = waterH((pos2.xyz)*2.0,frameTimeCounter*3.0)*0.2+1.1;
+#else
+		float caustics = 1.0;
+#endif
 		if ((isEyeInWater == 0 && (iswater || isice)) || (isEyeInWater == 1 && !(iswater || isice))) 				
 		color = pow(texture2D(gdepth,newtc).xyz,vec3(2.2))*caustics*caustics*caustics;
 			
@@ -512,6 +534,7 @@ if (!particle && !land) {
 		color = mix(color,(color*rawAlbedo.rgb)/length(rawAlbedo.rgb),rawAlbedo.a)*(1.0-rawAlbedo.a) + finalAColor.rgb*rawAlbedo.a;
 		
 		
+#ifdef WATER_REFLECTIONS
 		float normalDotEye = dot(normal, normalize(fragpos.xyz));
 		float fresnel = pow(1.00 + normalDotEye, 5.0)+0.02;		
 		
@@ -524,6 +547,7 @@ if (!particle && !land) {
 		
 		fresnel *= (iswater || isice)? 1.0 : 0.5;
 		color = mix(color,reflection.rgb,fresnel/1.1);
+#endif
 
 	}
 

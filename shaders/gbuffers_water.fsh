@@ -11,6 +11,10 @@ Read the terms of modification and sharing before changing something below pleas
 	#define MIX_TEX	0.7	
 	vec4 watercolor = vec4(0.1,0.4,0.6,0.4); 	//water color and opacity (r,g,b,opacity)
 
+#define WATER_WAVES
+#define WATER_CAUSTICS
+#define WATER_REFLECTIONS
+
 varying vec4 color;
 varying vec4 lmtexcoord;
 varying vec3 sunlight;
@@ -179,6 +183,8 @@ vec3 lightColor = mix(sunlight,moonlight*(1.0-rainStrength*0.6),visibility.y)*tr
 	
 	vec3 posxz = wpos+cameraPosition;
 	float ft = frameTimeCounter*max(iswater*8.0-4.0,0.0);
+	
+#ifdef WATER_WAVES
 	posxz.x += sin(posxz.z+ft)*0.25;
 	posxz.z += cos(posxz.x+ft*0.5)*0.25;
 	posxz.xz += sin(posxz.y);
@@ -190,6 +196,10 @@ vec3 lightColor = mix(sunlight,moonlight*(1.0-rainStrength*0.6),visibility.y)*tr
 	
 	float dX = (h0-h1)/deltaPos;
 	float dY = (h0-h2)/deltaPos;
+#else
+	float dX = 0.0;
+	float dY = 0.0;
+#endif
 
 	vec3 bump = normalize(vec3(dX,dY,1.0));
 			
