@@ -7,6 +7,7 @@ Read the terms of modification and sharing before changing something below pleas
 !! DO NOT REMOVE !!
 */
 
+#ifdef WAVING_PLANTS
 #define WAVING_LEAVES
 #define WAVING_VINES
 #define WAVING_GRASS
@@ -15,17 +16,52 @@ Read the terms of modification and sharing before changing something below pleas
 #define WAVING_FIRE
 #define WAVING_LAVA
 #define WAVING_LILYPAD
+#endif
 
+#ifdef WAVING_LEAVES
 #define ENTITY_LEAVES        18.0
+#else
+#define ENTITY_LEAVES        -1.0
+#endif
+#ifdef WAVING_VINES
 #define ENTITY_VINES        106.0
+#else
+#define ENTITY_VINES        -1.0
+#endif
+#ifdef WAVING_GRASS
 #define ENTITY_TALLGRASS     31.0
+#else
+#define ENTITY_TALLGRASS     -1.0
+#endif
+#ifdef WAVING_FLOWERS
 #define ENTITY_DANDELION     37.0
 #define ENTITY_ROSE          38.0
+#else
+#define ENTITY_DANDELION     -1.0
+#define ENTITY_ROSE          -1.0
+#endif
+#ifdef WAVING_WHEAT
 #define ENTITY_WHEAT         59.0
+#else
+#define ENTITY_WHEAT         -1.0
+#endif
+#ifdef WAVING_LILYPAD
 #define ENTITY_LILYPAD      111.0
+#else
+#define ENTITY_LILYPAD       -1.0
+#endif
+#ifdef WAVING_FIRE
 #define ENTITY_FIRE          51.0
+#else
+#define ENTITY_FIRE          -1.0
+#endif
+#ifdef WAVING_LAVA
 #define ENTITY_LAVAFLOWING   10.0
 #define ENTITY_LAVASTILL     11.0
+#else
+#define ENTITY_LAVAFLOWING   -1.0
+#define ENTITY_LAVASTILL     -1.0
+#endif
 
 varying vec4 color;
 varying vec2 texcoord;
@@ -98,13 +134,8 @@ void main() {
 	vec2 lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 	float modlmap = 16.0 - lmcoord.s * 15.7;
 	float torch_lightmap = max(0.75/(modlmap*modlmap)-0.00315,0.0);
-	vec4 idtest = vec4(ENTITY_TALLGRASS,ENTITY_DANDELION,ENTITY_ROSE,ENTITY_WHEAT)-mc_Entity.x;
-	bool wavy1 = idtest.x*idtest.y*idtest.z*idtest.w == 0.0;
-
-	vec2 id2 = vec2(161.0,ENTITY_LEAVES)-mc_Entity.x;
-	bool wavy2 = id2.x*id2.y == 0.0;
-
-	idtest = vec4(50.0,62.0,76.0,89.0)-mc_Entity.x;
+	
+	vec4 idtest = vec4(50.0,62.0,76.0,89.0)-mc_Entity.x;
 	// keep original ID-based detection, but also treat any sufficiently strong lightmap as emissive
 	bool emissive = (idtest.x*idtest.y*idtest.z*idtest.w == 0.0) || (torch_lightmap > 0.02);
 
@@ -112,12 +143,20 @@ void main() {
 	bool mat = idtest.x*idtest.y*idtest.z*idtest.w == 0.0;
 	color = (emissive? vec4(1.0) : gl_Color);
 
+#ifdef WAVING_PLANTS
+	idtest = vec4(ENTITY_TALLGRASS,ENTITY_DANDELION,ENTITY_ROSE,ENTITY_WHEAT)-mc_Entity.x;
+	bool wavy1 = idtest.x*idtest.y*idtest.z*idtest.w == 0.0;
+
+	vec2 id2 = vec2(161.0,ENTITY_LEAVES)-mc_Entity.x;
+	bool wavy2 = id2.x*id2.y == 0.0;
+	
 	if ((istopv && wavy1)|| wavy2) position.xyz += calcMove(worldpos.xyz, 0.0040, 0.0064, 0.0043, 0.0035, 0.0037, 0.0041, vec3(1.0,0.2,1.0), vec3(0.5,0.1,0.5));
 
 	if (wavy1 || wavy2) {
 			mat = true;
 			color *= vec4(1.1,1.1,1.1,1.0);
 		}
+#endif
 
 	position = gbufferModelView * position;
 	gl_Position = gl_ProjectionMatrix * position;
