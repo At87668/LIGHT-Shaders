@@ -1,5 +1,7 @@
-option.SHARPENING=抗锯齿
-option.SHARPENING.comment=启用时间性抗锯齿。
+option.TAA=TAA
+option.TAA.comment=启用时间性抗锯齿。使用帧历史平滑锯齿边缘。
+option.SHARPENING=锐化
+option.SHARPENING.comment=启用锐化滤镜。
 option.VIGNETTE=晕影
 option.VIGNETTE.comment=使屏幕边缘发黑。
 option.GODRAYS=体积光

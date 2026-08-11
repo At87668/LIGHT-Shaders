@@ -9,7 +9,7 @@
 
 !! DO NOT REMOVE !! !! DO NOT REMOVE !!
 
-Original code is from Chocapic13' shaders and this code is modified by LIGHT Shaders
+This code is from Chocapic13' shaders
 Read the terms of modification and sharing before changing something below please !
 !! DO NOT REMOVE !! !! DO NOT REMOVE !!
 
@@ -65,15 +65,25 @@ Not respecting these rules can and will result in a request of thread/download s
 	#define SHARPENING_OFF
 #endif
 
+// TAA Settings
+#define TAA
+#define TAA_BLEND_VARIABLE 0.5
+#define TAA_BLEND_CONSTANT 0.4
+#define TAA_BLEND_MINIMUM 0.2
+
 #define VIGNETTE
 #define VIGNETTE_STRENGTH 1. 
 #define VIGNETTE_START 0.35	//distance from the center of the screen where the vignette effect start (0-1)
 #define VIGNETTE_END 0.75		//distance from the center of the screen where the vignette effect end (0-1), bigger than VIGNETTE_START
 
-	//#define GODRAYS			//in this step previous godrays result is blurred
 		const float exposure = 2.2;			//godrays intensity
 		const float density = 1.0;			
 		const float grnoise = 0.0;		//amount of noise 
+
+#define LENS_EFFECTS
+#ifdef LENS_EFFECTS
+	//#define GODRAYS			//in this step previous godrays result is blurred
+#endif 
 
 
 //////////////////////////////END OF ADJUSTABLE VARIABLES
@@ -118,6 +128,8 @@ varying float moonVisibility;
 uniform sampler2D gcolor;
 uniform sampler2D gaux1;
 uniform sampler2D colortex1;
+uniform sampler2D colortex5; // TAA history buffer
+uniform sampler2D depthtex1;
 
 varying vec2 rainPos1;
 varying vec2 rainPos2;
@@ -137,6 +149,7 @@ uniform mat4 gbufferModelView;
 uniform mat4 gbufferPreviousModelView;
 uniform ivec2 eyeBrightnessSmooth;
 uniform int isEyeInWater;
+uniform int worldTime;
 uniform float aspectRatio;
 uniform float near;
 uniform float far;
@@ -146,6 +159,7 @@ uniform float rainStrength;
 uniform float wetness;
 uniform float frameTimeCounter;
 uniform int fogMode;
+uniform int frameCounter;
 
 	float distratio(vec2 pos, vec2 pos2) {
 	
@@ -201,8 +215,94 @@ float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
 return t * t * (3.0 - 2.0 * t); }
 
 in vec2 coord0;
-#ifdef SHARPENING
+
+// TAA Reprojection from Chocapic13
+vec2 Reprojection(vec3 pos) {
+	pos = pos * 2.0 - 1.0;
+
+	vec4 viewPosPrev = gbufferProjectionInverse * vec4(pos, 1.0);
+	viewPosPrev /= viewPosPrev.w;
+	viewPosPrev = gbufferModelViewInverse * viewPosPrev;
+
+	vec3 cameraOffset = cameraPosition - previousCameraPosition;
+	cameraOffset *= float(pos.z > 0.56);
+
+	vec4 previousPosition = viewPosPrev + vec4(cameraOffset, 0.0);
+	previousPosition = gbufferPreviousModelView * previousPosition;
+	previousPosition = gbufferPreviousProjection * previousPosition;
+	return previousPosition.xy / previousPosition.w * 0.5 + 0.5;
+}
+
+// TAA Neighbourhood Clamping
+vec2 neighbourhoodOffsets[8] = vec2[8](
+	vec2(-1.0, -1.0),
+	vec2( 0.0, -1.0),
+	vec2( 1.0, -1.0),
+	vec2(-1.0,  0.0),
+	vec2( 1.0,  0.0),
+	vec2(-1.0,  1.0),
+	vec2( 0.0,  1.0),
+	vec2( 1.0,  1.0)
+);
+
+void NeighbourhoodClamping(vec3 color, inout vec3 tempColor, vec2 view, float depth, inout float edge) {
+	vec3 minclr = color, maxclr = color;
+
+	for(int i = 0; i < 8; i++) {
+		vec2 offset = neighbourhoodOffsets[i] * view;
+		float depthCheck = texture2D(depthtex1, texcoord + offset).r;
+		if (abs(depthCheck - depth) > 0.03) edge = 1.0;
+		vec3 clr = texture2D(colortex1, texcoord + offset).rgb;
+		minclr = min(minclr, clr);
+		maxclr = max(maxclr, clr);
+	}
+
+	tempColor = clamp(tempColor, minclr, maxclr);
+}
+
+#ifdef TAA
 void TAA(inout vec3 color, vec2 textureCoord) {
+	float depth = texture2D(depthtex1, textureCoord).r;
+	
+	// Skip TAA for hand/entities (depth < 0.56)
+	if (depth < 0.56) {
+		return;
+	}
+
+	vec3 coord = vec3(textureCoord, depth);
+	vec2 prvCoord = Reprojection(coord);
+	
+	vec2 view = vec2(viewWidth, viewHeight);
+	vec3 tempColor = texture2D(colortex5, prvCoord).rgb;
+	
+	// First frame fix
+	if (tempColor == vec3(0.0)) {
+		return;
+	}
+
+	float edge = 0.0;
+	NeighbourhoodClamping(color, tempColor, 1.0 / view, depth, edge);
+	
+	vec2 velocity = (textureCoord - prvCoord.xy) * view;
+
+	float blendFactor = float(prvCoord.x > 0.0 && prvCoord.x < 1.0 &&
+	                          prvCoord.y > 0.0 && prvCoord.y < 1.0);
+	
+	float blendVariable = TAA_BLEND_VARIABLE;
+	float blendConstant = TAA_BLEND_CONSTANT;
+	float blendMinimum = TAA_BLEND_MINIMUM;
+	
+	float lengthVelocity = length(velocity * 2.0);
+	blendFactor *= max(exp(-lengthVelocity) * blendVariable + blendConstant - lengthVelocity * edge * 20.0, blendMinimum);
+	
+	color = mix(color, tempColor, blendFactor);
+}
+#else
+void TAA(inout vec3 color, vec2 coord) {}
+#endif
+
+#ifdef SHARPENING
+void Sharpen(inout vec3 color, vec2 textureCoord) {
 	// 3x3 Neighborhood sampling using texture2D and manual offsets
 	vec2 texel = vec2(1.0/viewWidth, 1.0/viewHeight);
 	vec3 a = texture2D(colortex1, textureCoord + texel * vec2(-1.0, -1.0)).rgb;
@@ -241,8 +341,7 @@ void TAA(inout vec3 color, vec2 textureCoord) {
     color = mix(e, outColor, blend);
 }
 #else
-// Off
-void TAA(inout vec3 color, vec2 coord) {}
+void Sharpen(inout vec3 color, vec2 coord) {}
 #endif
 
 //////////////////////////////VOID MAIN//////////////////////////////
@@ -316,8 +415,9 @@ c = ((1.0-(1.0-c)*(1.0-rainlens*avgAmbient*0.17)));
 	
 	
 
-if (fading > 0.01) {
-    float sunvisibility = 0.0;
+#ifdef LENS_EFFECTS
+	if (fading > 0.01) {
+    float sunvisibility = texture2D(gaux1,vec2(0.0015)).a * fading;
 	
 	const float lensBrightness = 5.0;
 	vec3 lC = lightColor*sunvisibility*(1.0-rainStrength*0.9);
@@ -325,7 +425,66 @@ if (fading > 0.01) {
 
 
 	// End of Dirty Lens
+	
+	// Anamorphic Lens
+	if (sunvisibility > 0.01) {
+		
+			float visibility = exp(-smoothCircleDist(1.0)*3.0);
+			const vec3 lensCol = 0.3 * lensBrightness * vec3(0.2, 0.8, 2.55);			
+			float anamorphic_lens = exp(-yDistAxis(0.0)*yDistAxis(0.0)*500.0);
+			vec3 lens = anamorphic_lens * lensCol * length(lC) * visibility;
+	
+	
+
+
+
+		
+			// Sunrays
+			const float sunrayBrightness = 1.1 * lensBrightness ;
+			visibility = exp(-smoothCircleDist(1.0)*16.0);
+			vec4 sunray = exp(-vec4(yDistAxis(1.5), yDistAxis(-1.3),yDistAxis(5.0),yDistAxis(-4.8))*25.0);
+			float sunrays = dot(sunray,vec4(sunrayBrightness * visibility))*(1.0-rainStrength*0.8);
+			lens += sunrays*lC;
+	
+	
+			// Circle Lens 1
+			const vec3 circleLens1Col = vec3(2.52, 1.2, 0.4) * 0.1 * lensBrightness;
+			vec3 circleLens1 = exp(-vec3(cirlceDist(-0.15, 0.07),cirlceDist(-0.2, 0.07),cirlceDist(-0.25, 0.07))*15.0);
+			float lensFlare = circleLens1.x * circleLens1.y * circleLens1.z;		
+			lens +=  lensFlare * circleLens1Col*lC;
+		
+		
+		
+		
+			// Circle Lens 2
+			const vec3 circleLens2Col = 0.07 * lensBrightness * vec3(1.6, 2.55, 0.4);
+			vec3 circleLens2 = exp(-vec3(cirlceDist(-0.4, 0.13),cirlceDist(-0.5, 0.13),cirlceDist(-0.6, 0.13))*15.0);			
+			lensFlare = circleLens2.x * circleLens2.y * circleLens2.z;			
+			lens += circleLens2Col * lensFlare*lC;
+		
+		
+		
+			// Circle Lens 3	
+			const vec3 circleLens3Col = vec3(0.4, 2.55, 1.55) * 0.05 * lensBrightness;
+			vec3 circleLens3 = exp(-vec3(cirlceDist(-0.75, 0.09),cirlceDist(-0.8, 0.09),cirlceDist(-0.85, 0.09))*15.0);	
+			lensFlare = circleLens3.x*circleLens3.y*circleLens3.z;			
+			lens +=  circleLens3Col * lensFlare*lC;
+		
+
+		// Ring Lens 		
+			const vec3 ringLensCol = 0.3 * lensBrightness * vec3(0.2, 0.8, 2.55);
+			
+			vec2 ringLens =  vec2(exp(-cirlceDist(-0.7, 0.5)*15.0),exp(-cirlceDist(-0.9, 0.5)*15.0));
+			
+			lensFlare = max(ringLens.y - ringLens.x, 0.0);
+			lens +=  ringLensCol * lensFlare * lensFlare * length(lC);
+			lens = min(lens,1.0);
+			c = ((1.0-(1.0-c)*(1.0-lens)));		
+		}
+	
+	
 }
+#endif
 	
 	
 	
@@ -333,7 +492,9 @@ if (fading > 0.01) {
 
 
 		
+
     TAA(c, coord0);
+    Sharpen(c, coord0);
 
 	#ifdef VIGNETTE
 	float len = length(newTC.xy-vec2(.5));

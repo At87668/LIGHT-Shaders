@@ -1,5 +1,7 @@
+option.TAA=TAA
+option.TAA.comment=Enable Temporal Anti-Aliasing. Smooths jagged edges using frame history.
 option.SHARPENING=Sharpness
-option.SHARPENING.comment=Enable Temporal Anti-Aliasing.
+option.SHARPENING.comment=Enable sharpening filter.
 option.VIGNETTE=Vignette
 option.VIGNETTE.comment=Blackens the edges of the screen.
 option.GODRAYS=Godrays

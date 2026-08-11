@@ -65,6 +65,12 @@ Not respecting these rules can and will result in a request of thread/download s
 	#define SHARPENING_OFF
 #endif
 
+// TAA Settings
+#define TAA
+#define TAA_BLEND_VARIABLE 0.5
+#define TAA_BLEND_CONSTANT 0.4
+#define TAA_BLEND_MINIMUM 0.2
+
 #define VIGNETTE
 #define VIGNETTE_STRENGTH 1. 
 #define VIGNETTE_START 0.35	//distance from the center of the screen where the vignette effect start (0-1)
@@ -122,6 +128,8 @@ varying float moonVisibility;
 uniform sampler2D gcolor;
 uniform sampler2D gaux1;
 uniform sampler2D colortex1;
+uniform sampler2D colortex5; // TAA history buffer
+uniform sampler2D depthtex1;
 
 varying vec2 rainPos1;
 varying vec2 rainPos2;
@@ -151,6 +159,7 @@ uniform float rainStrength;
 uniform float wetness;
 uniform float frameTimeCounter;
 uniform int fogMode;
+uniform int frameCounter;
 
 	float distratio(vec2 pos, vec2 pos2) {
 	
@@ -206,8 +215,94 @@ float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
 return t * t * (3.0 - 2.0 * t); }
 
 in vec2 coord0;
-#ifdef SHARPENING
+
+// TAA Reprojection from Chocapic13
+vec2 Reprojection(vec3 pos) {
+	pos = pos * 2.0 - 1.0;
+
+	vec4 viewPosPrev = gbufferProjectionInverse * vec4(pos, 1.0);
+	viewPosPrev /= viewPosPrev.w;
+	viewPosPrev = gbufferModelViewInverse * viewPosPrev;
+
+	vec3 cameraOffset = cameraPosition - previousCameraPosition;
+	cameraOffset *= float(pos.z > 0.56);
+
+	vec4 previousPosition = viewPosPrev + vec4(cameraOffset, 0.0);
+	previousPosition = gbufferPreviousModelView * previousPosition;
+	previousPosition = gbufferPreviousProjection * previousPosition;
+	return previousPosition.xy / previousPosition.w * 0.5 + 0.5;
+}
+
+// TAA Neighbourhood Clamping
+vec2 neighbourhoodOffsets[8] = vec2[8](
+	vec2(-1.0, -1.0),
+	vec2( 0.0, -1.0),
+	vec2( 1.0, -1.0),
+	vec2(-1.0,  0.0),
+	vec2( 1.0,  0.0),
+	vec2(-1.0,  1.0),
+	vec2( 0.0,  1.0),
+	vec2( 1.0,  1.0)
+);
+
+void NeighbourhoodClamping(vec3 color, inout vec3 tempColor, vec2 view, float depth, inout float edge) {
+	vec3 minclr = color, maxclr = color;
+
+	for(int i = 0; i < 8; i++) {
+		vec2 offset = neighbourhoodOffsets[i] * view;
+		float depthCheck = texture2D(depthtex1, texcoord + offset).r;
+		if (abs(depthCheck - depth) > 0.03) edge = 1.0;
+		vec3 clr = texture2D(colortex1, texcoord + offset).rgb;
+		minclr = min(minclr, clr);
+		maxclr = max(maxclr, clr);
+	}
+
+	tempColor = clamp(tempColor, minclr, maxclr);
+}
+
+#ifdef TAA
 void TAA(inout vec3 color, vec2 textureCoord) {
+	float depth = texture2D(depthtex1, textureCoord).r;
+	
+	// Skip TAA for hand/entities (depth < 0.56)
+	if (depth < 0.56) {
+		return;
+	}
+
+	vec3 coord = vec3(textureCoord, depth);
+	vec2 prvCoord = Reprojection(coord);
+	
+	vec2 view = vec2(viewWidth, viewHeight);
+	vec3 tempColor = texture2D(colortex5, prvCoord).rgb;
+	
+	// First frame fix
+	if (tempColor == vec3(0.0)) {
+		return;
+	}
+
+	float edge = 0.0;
+	NeighbourhoodClamping(color, tempColor, 1.0 / view, depth, edge);
+	
+	vec2 velocity = (textureCoord - prvCoord.xy) * view;
+
+	float blendFactor = float(prvCoord.x > 0.0 && prvCoord.x < 1.0 &&
+	                          prvCoord.y > 0.0 && prvCoord.y < 1.0);
+	
+	float blendVariable = TAA_BLEND_VARIABLE;
+	float blendConstant = TAA_BLEND_CONSTANT;
+	float blendMinimum = TAA_BLEND_MINIMUM;
+	
+	float lengthVelocity = length(velocity * 2.0);
+	blendFactor *= max(exp(-lengthVelocity) * blendVariable + blendConstant - lengthVelocity * edge * 20.0, blendMinimum);
+	
+	color = mix(color, tempColor, blendFactor);
+}
+#else
+void TAA(inout vec3 color, vec2 coord) {}
+#endif
+
+#ifdef SHARPENING
+void Sharpen(inout vec3 color, vec2 textureCoord) {
 	// 3x3 Neighborhood sampling using texture2D and manual offsets
 	vec2 texel = vec2(1.0/viewWidth, 1.0/viewHeight);
 	vec3 a = texture2D(colortex1, textureCoord + texel * vec2(-1.0, -1.0)).rgb;
@@ -246,8 +341,7 @@ void TAA(inout vec3 color, vec2 textureCoord) {
     color = mix(e, outColor, blend);
 }
 #else
-// Off
-void TAA(inout vec3 color, vec2 coord) {}
+void Sharpen(inout vec3 color, vec2 coord) {}
 #endif
 
 //////////////////////////////VOID MAIN//////////////////////////////
@@ -400,6 +494,7 @@ c = ((1.0-(1.0-c)*(1.0-rainlens*avgAmbient*0.17)));
 		
 
     TAA(c, coord0);
+    Sharpen(c, coord0);
 
 	#ifdef VIGNETTE
 	float len = length(newTC.xy-vec2(.5));

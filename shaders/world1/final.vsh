@@ -68,6 +68,7 @@ You can tweak the numbers, the impact on the shaders is self-explained in the va
 //go to line 46 for changing sunlight color and ambient color line 89 for moon light color
 /*--------------------------------*/
 varying vec2 texcoord;
+varying vec2 coord0;
 varying vec3 lightColor;
 varying vec3 avgAmbient;
 varying vec3 lightVector;
@@ -197,6 +198,7 @@ void main() {
 	/*--------------------------------*/
 	gl_Position = ftransform();
 	texcoord = (gl_MultiTexCoord0).xy;
+	coord0 = texcoord;
 	/*--------------------------------*/
 	if (worldTime < 12700 || worldTime > 23250) {
 		lightVector = normalize(sunPosition);
