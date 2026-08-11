@@ -129,7 +129,6 @@ uniform sampler2D gcolor;
 uniform sampler2D gaux1;
 uniform sampler2D colortex1;
 uniform sampler2D colortex5; // TAA history buffer
-uniform sampler2D depthtex1;
 
 varying vec2 rainPos1;
 varying vec2 rainPos2;
@@ -216,93 +215,40 @@ return t * t * (3.0 - 2.0 * t); }
 
 in vec2 coord0;
 
-// TAA Reprojection from Chocapic13
-vec2 Reprojection(vec3 pos) {
-	pos = pos * 2.0 - 1.0;
-
-	vec4 viewPosPrev = gbufferProjectionInverse * vec4(pos, 1.0);
-	viewPosPrev /= viewPosPrev.w;
-	viewPosPrev = gbufferModelViewInverse * viewPosPrev;
-
-	vec3 cameraOffset = cameraPosition - previousCameraPosition;
-	cameraOffset *= float(pos.z > 0.56);
-
-	vec4 previousPosition = viewPosPrev + vec4(cameraOffset, 0.0);
-	previousPosition = gbufferPreviousModelView * previousPosition;
-	previousPosition = gbufferPreviousProjection * previousPosition;
-	return previousPosition.xy / previousPosition.w * 0.5 + 0.5;
-}
-
-// TAA Neighbourhood Clamping
-vec2 neighbourhoodOffsets[8] = vec2[8](
-	vec2(-1.0, -1.0),
-	vec2( 0.0, -1.0),
-	vec2( 1.0, -1.0),
-	vec2(-1.0,  0.0),
-	vec2( 1.0,  0.0),
-	vec2(-1.0,  1.0),
-	vec2( 0.0,  1.0),
-	vec2( 1.0,  1.0)
-);
-
-void NeighbourhoodClamping(vec3 color, inout vec3 tempColor, vec2 view, float depth, inout float edge) {
-	vec3 minclr = color, maxclr = color;
-
-	for(int i = 0; i < 8; i++) {
-		vec2 offset = neighbourhoodOffsets[i] * view;
-		float depthCheck = texture2D(depthtex1, texcoord + offset).r;
-		if (abs(depthCheck - depth) > 0.03) edge = 1.0;
-		vec3 clr = texture2D(colortex1, texcoord + offset).rgb;
-		minclr = min(minclr, clr);
-		maxclr = max(maxclr, clr);
-	}
-
-	tempColor = clamp(tempColor, minclr, maxclr);
-}
-
 #ifdef TAA
-void TAA(inout vec3 color, vec2 textureCoord) {
-	float depth = texture2D(depthtex1, textureCoord).r;
-	
-	// Skip TAA for hand/entities (depth < 0.56)
-	if (depth < 0.56) {
-		return;
-	}
-
-	vec3 coord = vec3(textureCoord, depth);
-	vec2 prvCoord = Reprojection(coord);
-	
+void doTAA(inout vec3 color, vec2 textureCoord) {
+	// Simple TAA implementation for GLSL 120
 	vec2 view = vec2(viewWidth, viewHeight);
-	vec3 tempColor = texture2D(colortex5, prvCoord).rgb;
 	
-	// First frame fix
-	if (tempColor == vec3(0.0)) {
+	// Get previous frame color from history buffer
+	vec3 tempColor = texture2D(colortex5, textureCoord).rgb;
+	
+	// First frame or invalid history - skip TAA
+	if (length(tempColor) < 0.001) {
 		return;
 	}
-
-	float edge = 0.0;
-	NeighbourhoodClamping(color, tempColor, 1.0 / view, depth, edge);
 	
-	vec2 velocity = (textureCoord - prvCoord.xy) * view;
-
-	float blendFactor = float(prvCoord.x > 0.0 && prvCoord.x < 1.0 &&
-	                          prvCoord.y > 0.0 && prvCoord.y < 1.0);
+	// Simple neighborhood clamping to prevent ghosting
+	vec3 minClr = color, maxClr = color;
+	vec2 texel = 1.0 / view;
+	for(int i = 0; i < 4; i++) {
+		vec2 offset = vec2(float(i/2 - 1), float(i%2 - 1)) * texel;
+		vec3 sampleColor = texture2D(colortex1, textureCoord + offset).rgb;
+		minClr = min(minClr, sampleColor);
+		maxClr = max(maxClr, sampleColor);
+	}
+	tempColor = clamp(tempColor, minClr, maxClr);
 	
-	float blendVariable = TAA_BLEND_VARIABLE;
-	float blendConstant = TAA_BLEND_CONSTANT;
-	float blendMinimum = TAA_BLEND_MINIMUM;
-	
-	float lengthVelocity = length(velocity * 2.0);
-	blendFactor *= max(exp(-lengthVelocity) * blendVariable + blendConstant - lengthVelocity * edge * 20.0, blendMinimum);
-	
+	// Blend current and previous frame
+	float blendFactor = 0.85; // Higher = more temporal smoothing
 	color = mix(color, tempColor, blendFactor);
 }
 #else
-void TAA(inout vec3 color, vec2 coord) {}
+void doTAA(inout vec3 color, vec2 coord) {}
 #endif
 
 #ifdef SHARPENING
-void Sharpen(inout vec3 color, vec2 textureCoord) {
+void doSharpen(inout vec3 color, vec2 textureCoord) {
 	// 3x3 Neighborhood sampling using texture2D and manual offsets
 	vec2 texel = vec2(1.0/viewWidth, 1.0/viewHeight);
 	vec3 a = texture2D(colortex1, textureCoord + texel * vec2(-1.0, -1.0)).rgb;
@@ -341,7 +287,7 @@ void Sharpen(inout vec3 color, vec2 textureCoord) {
     color = mix(e, outColor, blend);
 }
 #else
-void Sharpen(inout vec3 color, vec2 coord) {}
+void doSharpen(inout vec3 color, vec2 coord) {}
 #endif
 
 //////////////////////////////VOID MAIN//////////////////////////////
@@ -493,8 +439,8 @@ c = ((1.0-(1.0-c)*(1.0-rainlens*avgAmbient*0.17)));
 
 		
 
-    TAA(c, coord0);
-    Sharpen(c, coord0);
+    doTAA(c, coord0);
+    doSharpen(c, coord0);
 
 	#ifdef VIGNETTE
 	float len = length(newTC.xy-vec2(.5));

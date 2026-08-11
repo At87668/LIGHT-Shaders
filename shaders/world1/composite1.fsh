@@ -64,10 +64,10 @@ Not respecting these rules can and will result in a request of thread/download s
 
 varying vec2 texcoord;
 
-uniform sampler2D gcolor;
+uniform sampler2D gaux1; // Read from composite output (colortex4)
 
 void main() {
-	vec3 color = texture2D(gcolor, texcoord).rgb;
+	vec3 color = texture2D(gaux1, texcoord).rgb;
 	
 	/* DRAWBUFFERS:5 */
 	gl_FragData[0] = vec4(color, 1.0);
