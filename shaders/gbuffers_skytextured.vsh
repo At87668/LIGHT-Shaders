@@ -14,6 +14,7 @@ varying vec3 upVec;
 varying vec2 texcoord;
 
 varying float moonVisibility;
+varying float sunVisibility;
 
 
 
@@ -45,8 +46,11 @@ void main() {
 	moonVec = normalize(-sunPosition);
 	upVec = normalize(upPosition);
 
+	vec3 sunVec = normalize(sunPosition);
+	float SdotU = dot(sunVec,upVec);
 	float MdotU = dot(moonVec,upVec);
 
+	sunVisibility = pow(clamp(SdotU+0.15,0.0,0.15)/0.15,3.0);
 	moonVisibility = pow(clamp(MdotU+0.15,0.0,0.15)/0.15,3.0);
 	
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).st;
