@@ -65,11 +65,8 @@ Not respecting these rules can and will result in a request of thread/download s
 	#define SHARPENING_OFF
 #endif
 
-// TAA Settings
-#define TAA
-#define TAA_BLEND_VARIABLE 0.5
-#define TAA_BLEND_CONSTANT 0.4
-#define TAA_BLEND_MINIMUM 0.2
+// TAA is resolved in composite1 (before godrays and lens effects) so those
+// effects are not fed back into the history buffer.
 
 #define VIGNETTE
 #define VIGNETTE_STRENGTH 1. 
@@ -127,8 +124,6 @@ varying float moonVisibility;
 
 uniform sampler2D gcolor;
 uniform sampler2D gaux1;
-uniform sampler2D colortex1;
-uniform sampler2D colortex5; // TAA history buffer
 
 varying vec2 rainPos1;
 varying vec2 rainPos2;
@@ -215,51 +210,19 @@ return t * t * (3.0 - 2.0 * t); }
 
 in vec2 coord0;
 
-#ifdef TAA
-void doTAA(inout vec3 color, vec2 textureCoord) {
-	// Simple TAA implementation for GLSL 120
-	vec2 view = vec2(viewWidth, viewHeight);
-	
-	// Get previous frame color from history buffer
-	vec3 tempColor = texture2D(colortex5, textureCoord).rgb;
-	
-	// First frame or invalid history - skip TAA
-	if (length(tempColor) < 0.001) {
-		return;
-	}
-	
-	// Simple neighborhood clamping to prevent ghosting
-	vec3 minClr = color, maxClr = color;
-	vec2 texel = 1.0 / view;
-	for(int i = 0; i < 4; i++) {
-		vec2 offset = vec2(float(i/2 - 1), float(i%2 - 1)) * texel;
-		vec3 sampleColor = texture2D(colortex1, textureCoord + offset).rgb;
-		minClr = min(minClr, sampleColor);
-		maxClr = max(maxClr, sampleColor);
-	}
-	tempColor = clamp(tempColor, minClr, maxClr);
-	
-	// Blend current and previous frame
-	float blendFactor = 0.85; // Higher = more temporal smoothing
-	color = mix(color, tempColor, blendFactor);
-}
-#else
-void doTAA(inout vec3 color, vec2 coord) {}
-#endif
-
 #ifdef SHARPENING
 void doSharpen(inout vec3 color, vec2 textureCoord) {
 	// 3x3 Neighborhood sampling using texture2D and manual offsets
 	vec2 texel = vec2(1.0/viewWidth, 1.0/viewHeight);
-	vec3 a = texture2D(colortex1, textureCoord + texel * vec2(-1.0, -1.0)).rgb;
-	vec3 b = texture2D(colortex1, textureCoord + texel * vec2( 0.0, -1.0)).rgb;
-	vec3 cTAA = texture2D(colortex1, textureCoord + texel * vec2( 1.0, -1.0)).rgb;
-	vec3 d = texture2D(colortex1, textureCoord + texel * vec2(-1.0,  0.0)).rgb;
+	vec3 a = texture2D(gaux1, textureCoord + texel * vec2(-1.0, -1.0)).rgb;
+	vec3 b = texture2D(gaux1, textureCoord + texel * vec2( 0.0, -1.0)).rgb;
+	vec3 cTAA = texture2D(gaux1, textureCoord + texel * vec2( 1.0, -1.0)).rgb;
+	vec3 d = texture2D(gaux1, textureCoord + texel * vec2(-1.0,  0.0)).rgb;
 	vec3 e = color;
-	vec3 f = texture2D(colortex1, textureCoord + texel * vec2( 1.0,  0.0)).rgb;
-	vec3 g = texture2D(colortex1, textureCoord + texel * vec2(-1.0,  1.0)).rgb;
-	vec3 h = texture2D(colortex1, textureCoord + texel * vec2( 0.0,  1.0)).rgb;
-	vec3 i = texture2D(colortex1, textureCoord + texel * vec2( 1.0,  1.0)).rgb;
+	vec3 f = texture2D(gaux1, textureCoord + texel * vec2( 1.0,  0.0)).rgb;
+	vec3 g = texture2D(gaux1, textureCoord + texel * vec2(-1.0,  1.0)).rgb;
+	vec3 h = texture2D(gaux1, textureCoord + texel * vec2( 0.0,  1.0)).rgb;
+	vec3 i = texture2D(gaux1, textureCoord + texel * vec2( 1.0,  1.0)).rgb;
 
 	// Soft min/max
 	vec3 mnRGB  = min(min(min(d,e),min(f,b)),h);
@@ -439,7 +402,6 @@ c = ((1.0-(1.0-c)*(1.0-rainlens*avgAmbient*0.17)));
 
 		
 
-    doTAA(c, coord0);
     doSharpen(c, coord0);
 
 	#ifdef VIGNETTE

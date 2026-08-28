@@ -102,19 +102,28 @@ void main() {
 
 	/*--------------------------------*/
 	
-		if(mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
-		iswater = 1.0;
-		float fy = fract(worldpos.y + 0.001);
-		
+	if(mc_Entity.x == 8.0 || mc_Entity.x == 9.0) {
+	iswater = 1.0;
+	float fy = fract(worldpos.y + 0.001);
+
 #ifdef WATER_WAVES
-		float wave = 0.05 * sin(2 * PI * (frameTimeCounter*0.75 + worldpos.x /  7.0 + worldpos.z / 13.0))
-				   + 0.05 * sin(2 * PI * (frameTimeCounter*0.6 + worldpos.x / 11.0 + worldpos.z /  5.0));
-		displacement = clamp(wave, -fy, 1.0-fy);
-		viewpos.y += displacement*0.6-0.01;
+	float wave = 0.05 * sin(2 * PI * (frameTimeCounter*0.75 + worldpos.x /  7.0 + worldpos.z / 13.0))
+			   + 0.05 * sin(2 * PI * (frameTimeCounter*0.6 + worldpos.x / 11.0 + worldpos.z /  5.0));
+	displacement = clamp(wave, -fy, 1.0-fy);
+	viewpos.y += displacement*0.6-0.01;
 #else
-		viewpos.y -= 0.01;
+	viewpos.y -= 0.01;
 #endif
-	}
+}
+	// Physics Mod replaces vanilla water with its own simulated mesh, which
+	// renders here without any block id. Treat that id-less geometry as water
+	// so it gets the full water pipeline (waves normals, refraction, caustics,
+	// reflections) instead of glitching. The mesh is already displaced by the
+	// mod, so no shader wave offset is applied to it.
+	else if (mc_Entity.x < 1.0) {
+	iswater = 1.0;
+	viewpos.y -= 0.01;
+}
 	if(mc_Entity.x == 79.0) iswater = 0.5;
 	/* re-rotate */
 	viewpos = gbufferModelView * viewpos;
