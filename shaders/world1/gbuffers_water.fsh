@@ -20,6 +20,7 @@ varying vec3 binormal;
 varying vec3 normal;
 varying vec3 tangent;
 varying float iswater;
+varying float isportal;
 
 uniform mat4 gbufferProjection;
 uniform mat4 gbufferProjectionInverse;
@@ -221,6 +222,11 @@ vec3 lightColor = mix(sunlight,moonlight*(1.0-rainStrength*0.6),visibility.y)*tr
 
 
 	
+	// The nether portal is emissive: draw it at its own texture brightness
+	// instead of letting the sun, shadow map and lightmap darken or tint it, so
+	// it reads as a glowing gate rather than a lit translucent block.
+	if (isportal > 0.5) fColor = colorrgb * 1.6;
+
 	fColor = pow(fColor,vec3(1.0/2.2));
 	
 

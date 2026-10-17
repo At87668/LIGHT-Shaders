@@ -29,6 +29,7 @@ varying vec3 binormal;
 varying vec3 normal;
 varying vec3 tangent;
 varying float iswater;
+varying float isportal;
 
 attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
@@ -92,6 +93,10 @@ void main() {
 	
 	vec4 position = gl_ModelViewMatrix * ATTR_POSITION;
 	iswater = 0.0f;
+	// The nether portal is the only emissive block that reaches this pass. Flag
+	// it so the fragment stage can draw it with its own glow instead of shading
+	// it with the sun and shadow map.
+	isportal = (mc_Entity.x > 89.5 && mc_Entity.x < 90.5) ? 1.0 : 0.0;
 	float displacement = 0.0;
 	
 	/* un-rotate */
