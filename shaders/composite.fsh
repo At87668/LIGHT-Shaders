@@ -394,26 +394,26 @@ void main() {
 		deltatexcoord *= density;
 		vec2 noisetc = texcoord + deltatexcoord*getnoise(texcoord)*grnoise;
 			
-			float sample = texture2D(depthtex0, deltatexcoord + noisetc).x;
-			float gr = float(sample > comp);
+			float depthSample = texture2D(depthtex0, deltatexcoord + noisetc).x;
+			float gr = float(depthSample > comp);
 			
-			sample = texture2D(depthtex0, 2.0*deltatexcoord + noisetc).x;
-			gr += float(sample > comp);
+			depthSample = texture2D(depthtex0, 2.0*deltatexcoord + noisetc).x;
+			gr += float(depthSample > comp);
 			
-			sample = texture2D(depthtex0, 3.0*deltatexcoord + noisetc).x;
-			gr += float(sample > comp);
+			depthSample = texture2D(depthtex0, 3.0*deltatexcoord + noisetc).x;
+			gr += float(depthSample > comp);
 			
-			sample = texture2D(depthtex0, 4.0*deltatexcoord + noisetc).x;
-			gr += float(sample > comp);
+			depthSample = texture2D(depthtex0, 4.0*deltatexcoord + noisetc).x;
+			gr += float(depthSample > comp);
 			
-			sample = texture2D(depthtex0, 5.0*deltatexcoord + noisetc).x;
-			gr += float(sample > comp);
+			depthSample = texture2D(depthtex0, 5.0*deltatexcoord + noisetc).x;
+			gr += float(depthSample > comp);
 			
-			sample = texture2D(depthtex0, 6.0*deltatexcoord + noisetc).x;
-			gr += float(sample > comp);
+			depthSample = texture2D(depthtex0, 6.0*deltatexcoord + noisetc).x;
+			gr += float(depthSample > comp);
 			
-			sample = texture2D(depthtex0, 7.0*deltatexcoord + noisetc).x;
-			gr += float(sample > comp);
+			depthSample = texture2D(depthtex0, 7.0*deltatexcoord + noisetc).x;
+			gr += float(depthSample > comp);
 			
 
 gr /= 7.0;
