@@ -154,6 +154,7 @@ uniform float wetness;
 uniform float frameTimeCounter;
 uniform int fogMode;
 uniform int frameCounter;
+uniform float nightVision;
 
 	float distratio(vec2 pos, vec2 pos2) {
 	
@@ -414,6 +415,19 @@ c = ((1.0-(1.0-c)*(1.0-rainlens*avgAmbient*0.17)));
 	
 	c = c*(0.8+vignette*1.2)*0.5;
 	#endif	
+
+	// Night vision support. Once a shaderpack owns the final pass the fixed
+	// pipeline no longer applies the vanilla potion effect, so reproduce it here:
+	// a hard lift of the dark end, an ambient floor and the familiar desaturated
+	// green cast. Independent implementation (not derived from another pack).
+	if (nightVision > 0.001) {
+		vec3 nvInv = vec3(1.0) - c;
+		vec3 nvLift = vec3(1.0) - nvInv * nvInv * nvInv;	// lift the shadows
+		nvLift += vec3(0.10);					// floor so pitch black is readable
+		float nvLuma = dot(nvLift, vec3(0.299, 0.587, 0.114));
+		vec3 nvTint = mix(vec3(nvLuma), vec3(nvLuma) * vec3(0.65, 1.35, 0.80), 0.5);
+		c = mix(c, min(nvTint * 1.2, vec3(1.0)), nightVision);
+	}
 
 	gl_FragColor = vec4(c,1.);
 }
